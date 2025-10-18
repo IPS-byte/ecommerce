@@ -6,6 +6,6 @@
     <title>Document</title>
 </head>
 <body>
-    <a href="auth/login.php">Click Link to Log in</a>
+    <a href="public/login.php">Click Link to Log in</a>
 </body>
 </html>
