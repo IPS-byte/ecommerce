@@ -1,4 +1,32 @@
+<?php
+session_start();
+include '../includes/db.php'; // Ensure $mysqli connection is defined
+include '../includes/functions.php'; // Must define flash_set() and flash_display()
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+	$email = $_POST['email'] ?? '';
+	$password = $_POST['password'] ?? '';
 
+	// Prepare and execute the query to prevent SQL injection
+	$stmt = $mysqli->prepare("SELECT * FROM users WHERE email = ?");
+	$stmt->bind_param('s', $email);
+	$stmt->execute();
+	$result = $stmt->get_result();
+	$user = $result->fetch_assoc();
+
+	if ($user && password_verify($password, $user['password'])) {
+		// Successful login
+		$_SESSION['user_id'] = $user['id'];
+		flash_set('success', 'Login successful!');
+		header('Location: ../public/dashboard.php');
+		exit;
+	} else {
+		// Failed login
+		flash_set('error', 'Invalid email or password.');
+		header('Location: login.php');
+		exit;
+	}
+}
+?>
 
 <!DOCTYPE html>
 <html lang="en">

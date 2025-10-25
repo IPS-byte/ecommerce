@@ -87,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             flash_set('success', 'Registration successful! Welcome, ' . htmlspecialchars($first_name) . '.');
             header('Location: ../dashboard.php');
-            exit;
+            exit;        
         } else {
             flash_set('error', 'Registration failed. Please try again.');
         }

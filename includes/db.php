@@ -2,7 +2,7 @@
 $host = "localhost";
 $user = "root";
 $pass = "";
-$dbname = "ecommerce_pr";
+$dbname = "ecommerce_system";
 
 $mysqli = new mysqli($host, $user, $pass, $dbname);
 
