@@ -15,9 +15,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 	if ($user && password_verify($password, $user['password'])) {
 		// Successful login
+		session_regenerate_id(true);
 		$_SESSION['user_id'] = $user['id'];
-		flash_set('success', 'Login successful!');
-		header('Location: ../public/dashboard.php');
+		$_SESSION['role'] = $user['role'];
+		$_SESSION['last_activity'] = time();
+
+		$role = strtolower(trim($user['role']));
+		switch ($role) {
+			case 'admin':
+				header('Location: ../dashboards/admin_dashboard.php');
+				break;
+			case 'customer':
+				header('Location: ../dashboards/customer_dashboard.php');
+				break;
+			case 'seller':
+				header('Location: ../dashboards/seller_dashboard.php');
+				break;
+			default:
+				// Unknown role — log out and inform user
+				session_unset();
+				session_destroy();
+				flash_set('error', 'Account role not recognized. Please contact support.');
+				header('Location: login.php');
+				exit;
+		}
 		exit;
 	} else {
 		// Failed login

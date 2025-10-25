@@ -4,100 +4,111 @@ include '../includes/db.php'; // Ensure $mysqli connection is defined
 include '../includes/functions.php'; // Must define flash_set() and flash_display()
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Collect and sanitize inputs
-    $email = trim($_POST['email'] ?? '');
-    $first_name = trim($_POST['first_name'] ?? '');
-    $last_name = trim($_POST['last_name'] ?? '');
-    $password = $_POST['password'] ?? '';
-    $confirm_password = $_POST['confirm_password'] ?? '';
-    $role = trim($_POST['role'] ?? 'customer');
-    $phone_number = trim($_POST['phone_number'] ?? '');
-    $profile_image = $_FILES['profile_image'] ?? null;
+  // Collect and sanitize inputs
+  $email = trim($_POST['email'] ?? '');
+  $first_name = trim($_POST['first_name'] ?? '');
+  $last_name = trim($_POST['last_name'] ?? '');
+  $password = $_POST['password'] ?? '';
+  $confirm_password = $_POST['confirm_password'] ?? '';
+  $role = trim($_POST['role'] ?? 'customer');
+  $phone_number = trim($_POST['phone_number'] ?? '');
+  $profile_image = $_FILES['profile_image'] ?? null;
 
-    // === INPUT VALIDATION ===
-    if (empty($email) || empty($first_name) || empty($last_name) || empty($password) || empty($confirm_password)) {
-        flash_set('error', 'All fields are required.');
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        flash_set('error', 'Please enter a valid email address.');
-    } elseif (!preg_match("/^[a-zA-Z-' ]*$/", $first_name) || !preg_match("/^[a-zA-Z-' ]*$/", $last_name)) {
-        flash_set('error', 'Names must contain only letters and spaces.');
-    } elseif ($password !== $confirm_password) {
-        flash_set('error', 'Passwords do not match.');
-    } elseif (strlen($password) < 8) {
-        flash_set('error', 'Password must be at least 8 characters long.');
-    } else {
-        // === CHECK IF EMAIL ALREADY EXISTS ===
-        $stmt = $mysqli->prepare("SELECT id FROM users WHERE email = ?");
-        if (!$stmt) {
-            flash_set('error', 'Database error: ' . $mysqli->error);
-            header('Location: register.php');
-            exit;
-        }
-
-        $stmt->bind_param('s', $email);
-        $stmt->execute();
-        $stmt->store_result();
-
-        if ($stmt->num_rows > 0) {
-            flash_set('error', 'This email is already registered.');
-            $stmt->close();
-            header('Location: register.php');
-            exit;
-        }
-        $stmt->close();
-
-        // === HANDLE PROFILE IMAGE UPLOAD ===
-        $profile_image_path = null;
-        if ($profile_image && $profile_image['error'] === UPLOAD_ERR_OK) {
-            $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
-            if (in_array($profile_image['type'], $allowed_types)) {
-                $ext = pathinfo($profile_image['name'], PATHINFO_EXTENSION);
-                $new_filename = uniqid('profile_', true) . '.' . $ext;
-                $upload_dir = '../uploads/profile_images/';
-                if (!is_dir($upload_dir)) {
-                    mkdir($upload_dir, 0755, true);
-                }
-                $target_path = $upload_dir . $new_filename;
-                if (move_uploaded_file($profile_image['tmp_name'], $target_path)) {
-                    $profile_image_path = 'uploads/profile_images/' . $new_filename;
-                }
-            }
-        }
-
-        // === HASH PASSWORD & INSERT USER ===
-        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-
-        $insert = $mysqli->prepare("INSERT INTO users (email, password, first_name, last_name, role, phone_number, profile_image, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())");
-        if (!$insert) {
-            flash_set('error', 'Database error: ' . $mysqli->error);
-            header('Location: register.php');
-            exit;
-        }
-
-        $insert->bind_param('sssssss', $email, $hashedPassword, $first_name, $last_name, $role, $phone_number, $profile_image_path);
-        $success = $insert->execute();
-        $insert->close();
-
-        if ($success) {
-            // Store session info for immediate login
-            $_SESSION['user_id'] = $mysqli->insert_id;
-            $_SESSION['user_email'] = $email;
-            $_SESSION['user_name'] = $first_name . ' ' . $last_name;
-            $_SESSION['user_role'] = $role;
-
-            flash_set('success', 'Registration successful! Welcome, ' . htmlspecialchars($first_name) . '.');
-            header('Location: ../dashboard.php');
-            exit;        
-        } else {
-            flash_set('error', 'Registration failed. Please try again.');
-        }
+  // === INPUT VALIDATION ===
+  if (empty($email) || empty($first_name) || empty($last_name) || empty($password) || empty($confirm_password)) {
+    flash_set('error', 'All fields are required.');
+  } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    flash_set('error', 'Please enter a valid email address.');
+  } elseif (!preg_match("/^[a-zA-Z-' ]*$/", $first_name) || !preg_match("/^[a-zA-Z-' ]*$/", $last_name)) {
+    flash_set('error', 'Names must contain only letters and spaces.');
+  } elseif ($password !== $confirm_password) {
+    flash_set('error', 'Passwords do not match.');
+  } elseif (strlen($password) < 8) {
+    flash_set('error', 'Password must be at least 8 characters long.');
+  } else {
+    // === CHECK IF EMAIL ALREADY EXISTS ===
+    $stmt = $mysqli->prepare("SELECT id FROM users WHERE email = ?");
+    if (!$stmt) {
+      flash_set('error', 'Database error: ' . $mysqli->error);
+      header('Location: register.php');
+      exit;
     }
 
-    // Redirect after validation or failure
-    header('Location: register.php');
-    exit;
-}
+    $stmt->bind_param('s', $email);
+    $stmt->execute();
+    $stmt->store_result();
 
+    if ($stmt->num_rows > 0) {
+      flash_set('error', 'This email is already registered.');
+      $stmt->close();
+      header('Location: register.php');
+      exit;
+    }
+    $stmt->close();
+
+    // === HANDLE PROFILE IMAGE UPLOAD ===
+    $profile_image_path = null;
+    if ($profile_image && $profile_image['error'] === UPLOAD_ERR_OK) {
+      $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
+      if (in_array($profile_image['type'], $allowed_types)) {
+        $ext = pathinfo($profile_image['name'], PATHINFO_EXTENSION);
+        $new_filename = uniqid('profile_', true) . '.' . $ext;
+        $upload_dir = '../uploads/profile_images/';
+        if (!is_dir($upload_dir)) {
+          mkdir($upload_dir, 0755, true);
+        }
+        $target_path = $upload_dir . $new_filename;
+        if (move_uploaded_file($profile_image['tmp_name'], $target_path)) {
+          $profile_image_path = 'uploads/profile_images/' . $new_filename;
+        }
+      }
+    }
+
+    // === HASH PASSWORD & INSERT USER ===
+    $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+
+    $insert = $mysqli->prepare("INSERT INTO users (email, password, first_name, last_name, role, phone_number, profile_image, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())");
+    if (!$insert) {
+      flash_set('error', 'Database error: ' . $mysqli->error);
+      header('Location: register.php');
+      exit;
+    }
+
+    $insert->bind_param('sssssss', $email, $hashedPassword, $first_name, $last_name, $role, $phone_number, $profile_image_path);
+    $success = $insert->execute();
+    $insert->close();
+
+    if ($success) {
+      // Store session info for immediate login
+      $_SESSION['user_id'] = $mysqli->insert_id;
+      $_SESSION['user_email'] = $email;
+      $_SESSION['user_name'] = $first_name . ' ' . $last_name;
+      $_SESSION['user_role'] = $role;
+      $_SESSION['last_activity'] = time();
+      // Redirect to admin dashboards after successful registration
+      // redirect based on role
+      switch (strtolower($role)) {
+        case 'admin':
+          header('Location: ../dashboards/admin_dashboard.php');
+          break;
+        case 'seller':
+          header('Location: ../dashboards/seller_dashboard.php');
+          break;
+        case 'customer':
+        default:
+          header('Location: ../dashboards/customer_dashboard.php');
+          break;
+      }
+      exit;
+    } else {
+      flash_set('error', 'Registration failed. Please try again.');
+    }
+  }
+
+  // Redirect after validation or failure
+  header('Location: register.php');
+  exit;
+}
 
 ?>
 <!DOCTYPE html>
